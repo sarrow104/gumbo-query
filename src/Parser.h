@@ -1,7 +1,7 @@
 /***************************************************************************
- * 
+ *
  * $Id$
- * 
+ *
  **************************************************************************/
 
 /**
@@ -9,8 +9,8 @@
  * @author $Author$(hoping@baimashi.com)
  * @date $Date$
  * @version $Revision$
- * @brief 
- *  
+ * @brief
+ *
  **/
 
 #ifndef PARSER_H_
@@ -18,7 +18,8 @@
 
 #include <string>
 #include <gumbo.h>
-#include "Selector.h"
+//#include "Selector.h"
+class CSelector;
 
 class CParser
 {
@@ -36,6 +37,12 @@ class CParser
 
 	private:
 
+		/**
+		 * \code
+		 * SelectorGroup:
+		 *  -> Selector ( ',' Selector ) *
+		 * \endcode
+		 */
 		CSelector* parseSelectorGroup();
 
 		CSelector* parseSelector();

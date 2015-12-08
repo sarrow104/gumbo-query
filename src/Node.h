@@ -1,7 +1,7 @@
 /***************************************************************************
- * 
+ *
  * $Id$
- * 
+ *
  **************************************************************************/
 
 /**
@@ -9,8 +9,8 @@
  * @author $Author$(hoping@baimashi.com)
  * @date $Date$
  * @version $Revision$
- * @brief 
- *  
+ * @brief
+ *
  **/
 
 #ifndef NODE_H_
@@ -18,11 +18,18 @@
 
 #include <gumbo.h>
 #include <string>
+#include <iosfwd>
 
 class CSelection;
 
+class CQueryUtil;
+
+class CDocType;
+
 class CNode
 {
+	friend class CQueryUtil;
+	friend class CDocType;
 	public:
 
 		CNode(GumboNode* apNode = NULL);
@@ -30,8 +37,15 @@ class CNode
 		virtual ~CNode();
 
 	public:
+		void * get() const {
+			return mpNode;
+		}
+
+		GumboNodeType nodeType() const;
 
 		bool valid();
+
+		size_t indexWithinParent() const;
 
 		CNode parent();
 
@@ -43,21 +57,37 @@ class CNode
 
 		CNode childAt(size_t i);
 
+		bool isGumboType(GumboNodeType type);
+
 		std::string attribute(std::string key);
 
-		std::string text();
+		size_t attrNum() const;
+		const char * attrNameAt(size_t i) const;
+		const char * attrValueAt(size_t i) const;
 
-		std::string ownText();
+		const char * textGumbo() const;
 
-		size_t startPos();
+		std::string text() const;
 
-		size_t endPos();
+		std::string textNeat() const;
 
-		size_t startPosOuter();
+		std::string ownText() const;
 
-		size_t endPosOuter();
+		// "整洁"地文本输出
+		// 忽略<script>
+		// <br> -> "\n"
+		// <div> 等block属性的，自动添加空行；
+		void printNeat() const;
 
-		std::string tag();
+		size_t startPos() const;
+
+		size_t endPos() const;
+
+		size_t startPosOuter() const;
+
+		size_t endPosOuter() const;
+
+		std::string tag() const;
 
 		CSelection find(std::string aSelector);
 

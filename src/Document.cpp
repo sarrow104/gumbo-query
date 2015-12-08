@@ -1,7 +1,7 @@
 /***************************************************************************
- * 
+ *
  * $Id$
- * 
+ *
  **************************************************************************/
 
 /**
@@ -9,15 +9,23 @@
  * @author $Author$(hoping@baimashi.com)
  * @date $Date$
  * @version $Revision$
- * @brief 
- *  
+ * @brief
+ *
  **/
 
 #include "Document.h"
+#include "DocType.h"
+#include "Node.h"
+#include "QueryUtil.h"
 
 CDocument::CDocument()
 {
 	mpOutput = NULL;
+}
+
+CDocument::~CDocument()
+{
+	reset();
 }
 
 void CDocument::parse(const std::string& aInput)
@@ -26,9 +34,19 @@ void CDocument::parse(const std::string& aInput)
 	mpOutput = gumbo_parse(aInput.c_str());
 }
 
-CDocument::~CDocument()
+void CDocument::print(std::ostream& o) const
 {
-	reset();
+	CQueryUtil::writeOuterHtml(o, this->mpOutput->document);
+}
+
+int CDocument::errorCount() const
+{
+	return this->mpOutput ? this->mpOutput->errors.length : 0;
+}
+
+bool CDocument::isOK() const
+{
+	return this->mpOutput && 0 == this->mpOutput->errors.length;
 }
 
 CSelection CDocument::find(std::string aSelector)
@@ -37,9 +55,43 @@ CSelection CDocument::find(std::string aSelector)
 	{
 		throw "document not initialized";
 	}
+	if (!this->isOK())
+	{
+		throw "document initialized failed";
+	}
 
 	CSelection sel(mpOutput->root);
 	return sel.find(aSelector);
+}
+
+CDocType CDocument::doctype() const
+{
+	if (this->mpOutput) {
+		return CDocType(&this->mpOutput->document->v.document);
+	}
+	else {
+		return CDocType();
+	}
+}
+
+CNode    CDocument::root()    const
+{
+	if (this->mpOutput) {
+		return CNode(this->mpOutput->root);
+	}
+	else {
+		return CNode();
+	}
+}
+
+CNode    CDocument::document()    const
+{
+	if (this->mpOutput) {
+		return CNode(this->mpOutput->document);
+	}
+	else {
+		return CNode();
+	}
 }
 
 void CDocument::reset()

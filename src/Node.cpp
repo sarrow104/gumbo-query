@@ -1,7 +1,7 @@
 /***************************************************************************
- * 
+ *
  * $Id$
- * 
+ *
  **************************************************************************/
 
 /**
@@ -9,8 +9,8 @@
  * @author $Author$(hoping@baimashi.com)
  * @date $Date$
  * @version $Revision$
- * @brief 
- *  
+ * @brief
+ *
  **/
 
 #include "Node.h"
@@ -24,6 +24,16 @@ CNode::CNode(GumboNode* apNode)
 
 CNode::~CNode()
 {
+}
+
+GumboNodeType CNode::nodeType() const
+{
+	return mpNode->type;
+}
+
+size_t CNode::indexWithinParent() const
+{
+	return mpNode->index_within_parent;
 }
 
 CNode CNode::parent()
@@ -43,13 +53,7 @@ CNode CNode::prevSibling()
 
 unsigned int CNode::childNum()
 {
-	if (mpNode->type != GUMBO_NODE_ELEMENT)
-	{
-		return 0;
-	}
-
-	return mpNode->v.element.children.length;
-
+	return CQueryUtil::childNum(mpNode);
 }
 
 bool CNode::valid()
@@ -59,12 +63,12 @@ bool CNode::valid()
 
 CNode CNode::childAt(size_t i)
 {
-	if (mpNode->type != GUMBO_NODE_ELEMENT || i >= mpNode->v.element.children.length)
-	{
-		return CNode();
-	}
+	return CNode(CQueryUtil::nthChild(mpNode, i));
+}
 
-	return CNode((GumboNode*) mpNode->v.element.children.data[i]);
+bool CNode::isGumboType(GumboNodeType type)
+{
+	return this->mpNode && this->mpNode->type == type;
 }
 
 std::string CNode::attribute(std::string key)
@@ -74,10 +78,9 @@ std::string CNode::attribute(std::string key)
 		return "";
 	}
 
-	GumboVector attributes = mpNode->v.element.attributes;
-	for (unsigned int i = 0; i < attributes.length; i++)
+	for (unsigned int i = 0; i < CQueryUtil::attrNum(mpNode); i++)
 	{
-		GumboAttribute* attr = (GumboAttribute*) attributes.data[i];
+		GumboAttribute* attr = CQueryUtil::nthAttr(mpNode, i);
 		if (key == attr->name)
 		{
 			return attr->value;
@@ -87,69 +90,115 @@ std::string CNode::attribute(std::string key)
 	return "";
 }
 
-std::string CNode::text()
+size_t CNode::attrNum() const
+{
+	return CQueryUtil::attrNum(mpNode);
+}
+
+const char * CNode::attrNameAt(size_t i) const
+{
+	GumboAttribute * attr = CQueryUtil::nthAttr(mpNode, i);
+	return attr ? attr->name : 0;
+}
+
+const char * CNode::attrValueAt(size_t i) const
+{
+	GumboAttribute * attr = CQueryUtil::nthAttr(mpNode, i);
+	return attr ? attr->value : 0;
+}
+
+const char * CNode::textGumbo() const
+{
+	switch (CQueryUtil::getGumboType(mpNode)) {
+	case GUMBO_NODE_TEXT:
+	case GUMBO_NODE_CDATA:
+	case GUMBO_NODE_COMMENT:
+	case GUMBO_NODE_WHITESPACE:
+		return CQueryUtil::getText(mpNode);
+
+	default:
+		return 0;
+	}
+}
+
+
+std::string CNode::text() const
 {
 	return CQueryUtil::nodeText(mpNode);
 }
 
-std::string CNode::ownText()
+
+std::string CNode::textNeat() const
+{
+	return CQueryUtil::nodeTextNeat(mpNode);
+}
+
+std::string CNode::ownText() const
 {
 	return CQueryUtil::nodeOwnText(mpNode);
 }
 
-size_t CNode::startPos()
+size_t CNode::startPos() const
 {
 	switch(mpNode->type)
 	{
-	  case GUMBO_NODE_ELEMENT:
-		  return mpNode->v.element.start_pos.offset + mpNode->v.element.original_tag.length;
-	  case GUMBO_NODE_TEXT:
-		  return mpNode->v.text.start_pos.offset;
-	  default:
-		  return 0;
-  }
-}
+	case GUMBO_NODE_ELEMENT:
+		return mpNode->v.element.start_pos.offset + mpNode->v.element.original_tag.length;
 
-size_t CNode::endPos()
-{
-	switch(mpNode->type)
-	{
-	  case GUMBO_NODE_ELEMENT:
-		  return mpNode->v.element.end_pos.offset;
-	  case GUMBO_NODE_TEXT:
-		  return mpNode->v.text.original_text.length + startPos();
-	  default:
-		  return 0;
+	case GUMBO_NODE_TEXT:
+		return mpNode->v.text.start_pos.offset;
+
+	default:
+		return 0;
 	}
 }
 
-size_t CNode::startPosOuter()
+size_t CNode::endPos() const
+{
+	switch(mpNode->type)
+	{
+	case GUMBO_NODE_ELEMENT:
+		return mpNode->v.element.end_pos.offset;
+
+	case GUMBO_NODE_TEXT:
+		return mpNode->v.text.original_text.length + startPos();
+
+	default:
+		return 0;
+	}
+}
+
+size_t CNode::startPosOuter() const
 {
 	switch(mpNode->type)
 	{
 	case GUMBO_NODE_ELEMENT:
 		return mpNode->v.element.start_pos.offset;
+
 	case GUMBO_NODE_TEXT:
 		return mpNode->v.text.start_pos.offset;
+
 	default:
 		return 0;
 	}
 }
 
-size_t CNode::endPosOuter()
+size_t CNode::endPosOuter() const
 {
 	switch(mpNode->type)
 	{
 	case GUMBO_NODE_ELEMENT:
 		return mpNode->v.element.end_pos.offset + mpNode->v.element.original_end_tag.length;
+
 	case GUMBO_NODE_TEXT:
 		return mpNode->v.text.original_text.length + startPos();
+
 	default:
 		return 0;
 	}
 }
 
-std::string CNode::tag()
+std::string CNode::tag() const
 {
 	if (mpNode->type != GUMBO_NODE_ELEMENT)
 	{

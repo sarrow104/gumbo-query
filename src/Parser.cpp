@@ -1,7 +1,7 @@
 /***************************************************************************
- * 
+ *
  * $Id$
- * 
+ *
  **************************************************************************/
 
 /**
@@ -9,13 +9,15 @@
  * @author $Author$(hoping@baimashi.com)
  * @date $Date$
  * @version $Revision$
- * @brief 
- *  
+ * @brief
+ *
  **/
 
 #include "Parser.h"
 #include "Selector.h"
 #include "QueryUtil.h"
+
+#include <sstream>
 
 CParser::CParser(std::string aInput)
 {
@@ -33,6 +35,12 @@ CSelector* CParser::create(std::string aInput)
 	return parser.parseSelectorGroup();
 }
 
+/**
+ * \code
+ * SelectorGroup
+ *  -> Selector ( ',' Selector ) *
+ * \endcode
+ */
 CSelector* CParser::parseSelectorGroup()
 {
 	CSelector* ret = parseSelector();
@@ -55,6 +63,12 @@ CSelector* CParser::parseSelectorGroup()
 	return ret;
 }
 
+/**
+ * \code
+ * Selector
+ *  -> SimpleSelectorSequence ( (' '|'>'|'+'|'~') SimpleSelectorSequence ) *
+ * \endcode
+ */
 CSelector* CParser::parseSelector()
 {
 	skipWhitespace();
@@ -114,7 +128,7 @@ CSelector* CParser::parseSelector()
 		}
 		oldRet->release();
 		sel->release();
-		if(!isOk) 
+		if(!isOk)
 		{
 			throw error("impossible");
 		}
@@ -122,6 +136,11 @@ CSelector* CParser::parseSelector()
 	}
 }
 
+// SimpleSelectorSequence
+//   -> ('*'|TypeSelector)? IDSelector           // begin with '#'
+//   -> ('*'|TypeSelector)? ClassSelector        // begin with '.'
+//   -> ('*'|TypeSelector)? AttributeSelector    // begin with '['
+//   -> ('*'|TypeSelector)? PseudoclassSelector  // begin with ':'
 CSelector* CParser::parseSimpleSelectorSequence()
 {
 	CSelector* ret = NULL;
@@ -190,6 +209,8 @@ CSelector* CParser::parseSimpleSelectorSequence()
 	return ret;
 }
 
+// Nth
+//  -> ('+'|'-')? (integer|'n'|"odd"|"even")
 void CParser::parseNth(int& aA, int& aB)
 {
 
@@ -356,6 +377,8 @@ void CParser::parseNth(int& aA, int& aB)
 
 }
 
+// Integer
+//   -> [0-9]+
 int CParser::parseInteger()
 {
 	size_t offset = mOffset;
@@ -379,6 +402,19 @@ int CParser::parseInteger()
 	return i;
 }
 
+// PseudoclassSelector
+//  -> ':' ("not"|"has"|"haschild") '(' SelectorGroup ')'
+//  -> ':' ("contains"|"containsown") '(' (String | Identifier) ')' // 貌似是case sensitive
+//  -> ':' ("matches"|"matchesown") // TODO not support!
+//  -> ':' ("nth-child"|"nth-last-child"|"nth-of-type"|"nth-last-of-type") '(' Nth ')'
+//  -> ':' "first-child"
+//  -> ':' "last-child"
+//  -> ':' "first-of-type"
+//  -> ':' "last-of-type"
+//  -> ':' "only-child"
+//  -> ':' "only-of-type"
+//  -> ':' "empty"
+//  -> ':' "lang" '(' The-escaped-value ')' // TODO
 CSelector* CParser::parsePseudoclassSelector()
 {
 	if (mOffset >= mInput.size() || mInput[mOffset] != ':')
@@ -485,8 +521,9 @@ CSelector* CParser::parsePseudoclassSelector()
 			throw error("expected ')' but didn't find it");
 		}
 
-		return new CSelector(a, b, name == "nth-last-child" || name == "nth-last-of-type",
-				name == "nth-of-type" || name == "nth-last-of-type");
+		return new CSelector(a, b,
+							 name == "nth-last-child" || name == "nth-last-of-type",
+							 name == "nth-of-type" || name == "nth-last-of-type");
 	}
 	else if (name == "first-child")
 	{
@@ -522,6 +559,11 @@ CSelector* CParser::parsePseudoclassSelector()
 	}
 }
 
+// AttributeSelector
+//  -> '[' Identifier ']'
+//  -> '[' Identifier '=' (String|Identifier)']'
+//  -> '[' Identifier ("~="|"!=" |"^=" |"$=" |"*=") (String|Identifier) ']'
+//  -> '[' Identifier '#' '=' ... // TODO support regex
 CSelector* CParser::parseAttributeSelector()
 {
 	if (mOffset >= mInput.size() || mInput[mOffset] != '[')
@@ -568,7 +610,7 @@ CSelector* CParser::parseAttributeSelector()
 	std::string value;
 	if (op == "#=")
 	{
-		//TODo
+		// TODO
 		throw error("unsupported regex");
 	}
 	else
@@ -627,6 +669,8 @@ CSelector* CParser::parseAttributeSelector()
 	return new CAttributeSelector(aop, key, value);
 }
 
+// ClassSelector
+//  -> '.' Identifier
 CSelector* CParser::parseClassSelector()
 {
 	if (mOffset >= mInput.size() || mInput[mOffset] != '.')
@@ -639,6 +683,8 @@ CSelector* CParser::parseClassSelector()
 	return new CAttributeSelector(CAttributeSelector::EIncludes, "class", clazz);
 }
 
+// IDSelector
+//  -> '#' Name
 CSelector* CParser::parseIDSelector()
 {
 	if (mOffset >= mInput.size() || mInput[mOffset] != '#')
@@ -651,12 +697,15 @@ CSelector* CParser::parseIDSelector()
 	return new CAttributeSelector(CAttributeSelector::EEquals, "id", id);
 }
 
+// TypeSelector
+//  -> Identifier //check by "gumbo_tag_enum"
 CSelector* CParser::parseTypeSelector()
 {
 	std::string tag = parseIdentifier();
 	return new CSelector(gumbo_tag_enum(tag.c_str()));
 }
 
+// ')'
 bool CParser::consumeClosingParenthesis()
 {
 	size_t offset = mOffset;
@@ -670,6 +719,7 @@ bool CParser::consumeClosingParenthesis()
 	return false;
 }
 
+// '('
 bool CParser::consumeParenthesis()
 {
 	if (mOffset < mInput.size() && mInput[mOffset] == '(')
@@ -681,6 +731,8 @@ bool CParser::consumeParenthesis()
 	return false;
 }
 
+// "\s"+
+// "/*" ... "*/"
 bool CParser::skipWhitespace()
 {
 	size_t offset = mOffset;
@@ -716,6 +768,9 @@ bool CParser::skipWhitespace()
 	return false;
 }
 
+// String
+//  -> '"' char* | Escape '"'
+//  -> "'" char* | Escape "'"
 std::string CParser::parseString()
 {
 	size_t offset = mOffset;
@@ -790,6 +845,8 @@ std::string CParser::parseString()
 	return ret;
 }
 
+// Name
+//  -> nameChar+ | Escape
 std::string CParser::parseName()
 {
 	size_t offset = mOffset;
@@ -827,6 +884,8 @@ std::string CParser::parseName()
 	return ret;
 }
 
+// Identifier
+//  -> '-'? nameStart? Name
 std::string CParser::parseIdentifier()
 {
 	bool startingDash = false;
@@ -856,21 +915,31 @@ std::string CParser::parseIdentifier()
 	return name;
 }
 
+// Check.nameChar
+//  -> nameStart | '-' | [0-9]
 bool CParser::nameChar(char c)
 {
 	return nameStart(c) || (c == '-') || (c >= '0' && c <= '9');
 }
 
+// Check.nameStart
+//  -> [a-z]|[A-Z]|'-'| [\x7F-\xFF]
 bool CParser::nameStart(char c)
 {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_') || (c > 127);
 }
 
+// Check.hexDigit
+//  -> [0-9] | [a-f] | [A-F]
 bool CParser::hexDigit(char c)
 {
 	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
+// Escape
+//  -> "\\" (!hexDigit)
+//  -> "\\" hexDigit+
+//  -> "\\" whitespace
 std::string CParser::parseEscape()
 {
 	if (mInput.size() < mOffset + 2 || mInput[mOffset] != '\\')
@@ -960,6 +1029,8 @@ std::string CParser::parseEscape()
 std::string CParser::error(std::string message)
 {
 	size_t d = mOffset;
+
+#if 0
 	std::string ds;
 	if (d == 0)
 	{
@@ -978,6 +1049,12 @@ std::string CParser::error(std::string message)
 	}
 
 	return ret;
+#else
+	std::ostringstream oss;
+	oss << message << " at:" << mOffset;
+	return oss.str();
+#endif
+
 }
 
 /* vim: set ts=4 sw=4 sts=4 tw=100 noet: */

@@ -1,7 +1,7 @@
 /***************************************************************************
- * 
+ *
  * $Id$
- * 
+ *
  **************************************************************************/
 
 /**
@@ -9,8 +9,8 @@
  * @author $Author$(hoping@baimashi.com)
  * @date $Date$
  * @version $Revision$
- * @brief 
- *  
+ * @brief
+ *
  **/
 
 #ifndef SELECTOR_H_
@@ -21,21 +21,34 @@
 #include <vector>
 #include "Object.h"
 
+/**
+ * 选择器-基类
+ */
 class CSelector: public CObject
 {
 
 	public:
 		typedef enum
 		{
-			//
+			/**
+			 * place holer
+			 */
 			EDummy,
-			//
+			/**
+			 * match none element node which has no sub-text or sub-elements!
+			 */
 			EEmpty,
-			//
+			/**
+			 * the only leaf child of parent
+			 */
 			EOnlyChild,
-			//
+			/**
+			 * the Nth child [mA, mB)
+			 */
 			ENthChild,
-			//
+			/**
+			 * math node by exactly tag-name
+			 */
 			ETag,
 		} TOperator;
 	public:
@@ -110,16 +123,25 @@ class CSelector: public CObject
 		GumboTag mTag;
 };
 
+/**
+ * 一元选择器
+ */
 class CUnarySelector: public CSelector
 {
 	public:
 		typedef enum
 		{
-			//
+			/**
+			 * 不满足选择条件的节点；取反；
+			 */
 			ENot,
-			//
+			/**
+			 * 含有满足条件的任意子孙节点的节点
+			 */
 			EHasDescendant,
-			//
+			/**
+			 * 含有满足条件孩子节点的节点
+			 */
 			EHasChild,
 		} TOperator;
 
@@ -146,20 +168,34 @@ class CUnarySelector: public CSelector
 		TOperator mOp;
 };
 
+/**
+ * 二元选择器
+ */
 class CBinarySelector: public CSelector
 {
 	public:
 		typedef enum
 		{
-			// || 操作符
+			/**
+			 * || 二选一，或者，操作符
+			 */
 			EUnion,
-			// && 操作符
+			/**
+			 * && 交集，同时符合两个条件 操作符
+			 */
 			EIntersection,
-			//
+			/**
+			 * 父子关系同时满足 操作符
+			 */
 			EChild,
-			//
+			/**
+			 * 某祖先满足，当前也满足 操作符
+			 */
 			EDescendant,
-			//
+			/**
+			 * 兄长节点以及当前，同时满足 操作符<br />
+			 *  mAdjacent 用来决定是否挨在一起
+			 */
 			EAdjacent,
 		} TOperator;
 
@@ -186,37 +222,41 @@ class CBinarySelector: public CSelector
 		bool mAdjacent;
 };
 
+/**
+ * 属性选择器<br />
+ * 某名字的属性，是否符合值的的特点
+ */
 class CAttributeSelector: public CSelector
 {
 	public:
 		typedef enum
 		{
 			/**
-			 * 是否存在
+			 * 是否存在任何属性
 			 */
 			EExists,
 			/**
-			 * 是否相等
+			 * 属性是否与特征串相等
 			 */
 			EEquals,
 			/**
-			 * 是否包含
+			 * 属性值 是否包含 特征串
 			 */
 			EIncludes,
 			/**
-			 * 是否-开始
+			 * 属性值是否形如 "特征串-"
 			 */
 			EDashMatch,
 			/**
-			 * 是否前缀
+			 * 是否以特征串为前缀
 			 */
 			EPrefix,
 			/**
-			 * 是否后缀
+			 * 是否以特征串为后缀
 			 */
 			ESuffix,
 			/**
-			 * 是否子串
+			 * 是否以子串包含特征串
 			 */
 			ESubString,
 		} TOperator;
@@ -238,14 +278,21 @@ class CAttributeSelector: public CSelector
 		TOperator mOp;
 };
 
+/**
+ * 按内部文本是否符合提供值，检索；
+ */
 class CTextSelector: public CSelector
 {
 	public:
 		typedef enum
 		{
-			//
+			/**
+			 * 仅当前文本符合条件
+			 */
 			EOwnContains,
-			//
+			/**
+			 * 内部所有文本，满足条件
+			 */
 			EContains,
 		} TOperator;
 
