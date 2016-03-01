@@ -170,3 +170,14 @@ xcuserdata/**/*
 # pull your cahnges to other's repo"
 #
 #*.xccheckout
+CSS-Selector选择器构造过程.txt
+html标签的block、inline分类明细.txt
+jQuery语法.txt
+**/*.rar
+doxygen/
+**/cscope.files
+**/cscope.out
+lib/
+build-log.txt
+readme.txt
+install.sh
