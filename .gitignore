@@ -178,6 +178,7 @@ doxygen/
 **/cscope.files
 **/cscope.out
 lib/
+build/
 build-log.txt
 readme.txt
 install.sh
